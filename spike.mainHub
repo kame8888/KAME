@@ -1,0 +1,74 @@
+import hub, time
+from spike import Motor, MotorPair, PrimeHub
+from spike.control import wait_for_seconds
+
+# serial ini
+spike = PrimeHub()
+usb = hub.USB_VCP(0)
+# motor ini
+brush = Motor('A')
+cam = Motor('B')
+arm = Motor('D')
+
+tmp = ""
+b = ""
+res = ""
+flg = True
+flg2 = True
+phase = 0
+
+# start recive
+while True:
+    if spike.left_button.is_pressed():
+        raise SystemExit
+    b = usb.readline()
+    if b != None:
+        res = b.decode('utf-8')
+    else:
+        if flg:
+            spike.status_light.on('blue')
+        else:
+            spike.status_light.on('green')
+        tmp = ""
+        b = ""
+    if "\n" in res:
+        tmp = res.replace('\n', '')
+        if tmp == "on":
+            brush.start(40)
+        elif tmp == "press":
+            if flg2:
+                arm.run_for_seconds(1,-100)
+                arm.run_for_seconds(1,100)
+                flg2 = False
+        elif tmp == "reset":
+            flg = True
+            flg2 = True
+        elif tmp == "up":
+            cam.start(50)
+        elif tmp == "down":
+            cam.start(-50)
+        elif tmp == "off":
+            cam.stop()
+        elif tmp == "check" and flg2:
+            spike.speaker.beep(100, 0.2)
+            wait_for_seconds(17)
+            arm.run_for_seconds(1,-100)
+            arm.run_for_seconds(1,100)
+            spike.speaker.beep(100, 0.4)
+            wait_for_seconds(5)
+            wait_for_seconds(1)
+            brush.stop()
+            flg2 = False
+        elif tmp == "next":
+            brush.start(50)
+            cam.run_to_position(310)
+        elif tmp == "stop":
+            brush.stop()
+            cam.run_to_position(270)
+        else:
+            tmp = ""
+            b = ""
+            d = ""
+            arm.stop()
+    else:
+        spike.status_light.on('red')
